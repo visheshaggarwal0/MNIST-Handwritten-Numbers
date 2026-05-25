@@ -151,6 +151,4 @@ Thumbs.db
 
 # Project-specific ignored files
 data/
-mnist_cnn.pth
-training_history.png
 powershell.cmd
