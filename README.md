@@ -4,6 +4,9 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.12-EE4C2C.svg?logo=pytorch)](https://pytorch.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.57-FF4B4B.svg?logo=streamlit)](https://streamlit.io/)
 [![Plotly](https://img.shields.io/badge/Plotly-6.7-3F4F75.svg?logo=plotly)](https://plotly.com/)
+[![Live Demo](https://img.shields.io/badge/Streamlit-Live%20Demo-red.svg?logo=streamlit&color=FF4B4B)](https://mnist-handwritten-numbers-fjeg3fbd7mbi5w7uggne8y.streamlit.app/)
+
+🚀 **Live Demo**: [mnist-handwritten-numbers.streamlit.app](https://mnist-handwritten-numbers-fjeg3fbd7mbi5w7uggne8y.streamlit.app/)
 
 An end-to-end, high-performance Convolutional Neural Network (CNN) trained on the MNIST dataset, integrated with a clean, responsive Streamlit dashboard. The application provides an interactive drawing canvas and an image uploader, performing real-time classification and visualizing intermediate network activations (feature maps) to demystify what the network "sees."
 
