@@ -105,7 +105,7 @@ html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
 
-/* Title styling - clean and bold without neon glow */
+/* Title styling - clean and bold */
 .glow-title {
     font-weight: 800;
     margin-bottom: 5px;
@@ -116,36 +116,60 @@ html, body, [class*="css"] {
     opacity: 0.8;
 }
 
-/* Card container - clean borders, no glassmorphism background overrides */
-.glass-container {
-    border: 1px solid rgba(128, 128, 128, 0.2);
+/* Premium prediction metric container */
+.prediction-card {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.06) 0%, rgba(147, 51, 234, 0.06) 100%);
+    border: 1px solid rgba(79, 70, 229, 0.18);
     border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 20px;
-    background-color: rgba(128, 128, 128, 0.05);
-}
-
-/* Clean prediction metric container */
-.prediction-box {
-    border: 2px solid rgba(128, 128, 128, 0.2);
-    border-radius: 12px;
-    padding: 20px;
+    padding: 16px 20px;
     text-align: center;
-    background-color: rgba(128, 128, 128, 0.03);
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
 }
 
-.prediction-digit {
-    font-size: 72px;
+.prediction-card:hover {
+    border-color: rgba(147, 51, 234, 0.3);
+    box-shadow: 0 4px 20px rgba(79, 70, 229, 0.08);
+    transform: translateY(-2px);
+}
+
+.prediction-digit-large {
+    font-size: 80px;
     font-weight: 800;
-    margin: 10px 0;
+    background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 5px 0;
+    line-height: 1.1;
 }
 
-.prediction-confidence {
-    font-size: 18px;
+.prediction-label {
+    font-size: 14px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.7;
+}
+
+.prediction-confidence-large {
+    font-size: 16px;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+/* Fine-grained image hover effects */
+.stImage img {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border-radius: 8px;
+    border: 1px solid rgba(128, 128, 128, 0.15);
+}
+
+.stImage img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 </style>
-""", unsafe_allow_html=True)
+""",unsafe_allow_html=True)
 
 # 2. Load Model Helper
 @st.cache_resource
@@ -174,31 +198,31 @@ stroke_width = st.sidebar.slider("Brush Thickness", min_value=10, max_value=30, 
 drawing_mode = st.sidebar.selectbox("Drawing Tool", ("freedraw", "transform"))
 
 st.sidebar.markdown("---")
-st.sidebar.write("### Model Architecture Details")
-st.sidebar.info(
-    "**Architecture: CNN**\n\n"
-    "- **Conv2D (1 → 32)** | 3x3 kernel\n"
-    "- **ReLU & MaxPool2d** | 2x2 stride\n"
-    "- **Conv2D (32 → 64)** | 3x3 kernel\n"
-    "- **ReLU & MaxPool2d** | 2x2 stride\n"
-    "- **Dropout (25%)**\n"
-    "- **Dense Linear (3136 → 128)** | ReLU\n"
-    "- **Dropout (50%)**\n"
-    "- **Dense Linear (128 → 10)**\n"
-)
+with st.sidebar.expander("🔍 Model Architecture Details", expanded=False):
+    st.info(
+        "**Architecture: CNN**\n\n"
+        "- **Conv2D (1 → 32)** | 3x3 kernel\n"
+        "- **ReLU & MaxPool2d** | 2x2 stride\n"
+        "- **Conv2D (32 → 64)** | 3x3 kernel\n"
+        "- **ReLU & MaxPool2d** | 2x2 stride\n"
+        "- **Dropout (25%)**\n"
+        "- **Dense Linear (3136 → 128)** | ReLU\n"
+        "- **Dropout (50%)**\n"
+        "- **Dense Linear (128 → 10)**\n"
+    )
 
 # Check if training plot exists to display in sidebar
 if os.path.exists("training_history.png"):
     st.sidebar.markdown("---")
-    st.sidebar.write("### Training Metrics")
-    st.sidebar.image("training_history.png", width='stretch')
+    with st.sidebar.expander("📈 Training Performance", expanded=False):
+        st.image("training_history.png", width='stretch')
 
 # 4. Main Panel Header
 st.markdown("<h1 class='glow-title'>✍️ Handwritten Digit Recognition System</h1>", unsafe_allow_html=True)
 st.markdown("<p class='glow-subtitle'>Draw a digit on the canvas or upload an image to watch the CNN model classify it and visualize its inner features.</p>", unsafe_allow_html=True)
 
 # Layout division
-col_canvas, col_results = st.columns([1, 1.2], gap="large")
+col_canvas, col_results = st.columns([1.1, 1], gap="large")
 
 # Holds final input grayscale image
 input_tensor = None
@@ -211,52 +235,79 @@ with col_canvas:
         tab_draw, tab_upload = st.tabs(["🖌️ Draw Digit", "📤 Upload Image"])
         
         with tab_draw:
-            # Create canvas for drawing
-            canvas_result = st_canvas(
-                fill_color="rgba(255, 255, 255, 0)",
-                stroke_width=stroke_width,
-                stroke_color="#FFFFFF",
-                background_color="#000000",
-                height=280,
-                width=280,
-                drawing_mode=drawing_mode,
-                update_streamlit=True,
-                key="mnist_canvas",
-            )
+            draw_col, preview_col = st.columns([1.6, 1])
             
-            # Check if there is drawn image data
+            with draw_col:
+                # Create canvas for drawing
+                canvas_result = st_canvas(
+                    fill_color="rgba(255, 255, 255, 0)",
+                    stroke_width=stroke_width,
+                    stroke_color="#FFFFFF",
+                    background_color="#000000",
+                    height=280,
+                    width=280,
+                    drawing_mode=drawing_mode,
+                    update_streamlit=True,
+                    key="mnist_canvas",
+                )
+            
+            draw_tensor = None
+            draw_preview = None
             if canvas_result.image_data is not None and np.any(canvas_result.image_data[:, :, :3] > 10):
-                input_tensor, raw_img_for_view = preprocess_digit(canvas_result.image_data)
+                draw_tensor, draw_preview = preprocess_digit(canvas_result.image_data)
+                input_tensor = draw_tensor
+                raw_img_for_view = draw_preview
+                
+            with preview_col:
+                st.markdown("<div style='text-align: center; display: flex; flex-direction: column; align-items: center;'>", unsafe_allow_html=True)
+                st.markdown("##### 🕵️ What the CNN sees")
+                if draw_preview is not None:
+                    st.image(draw_preview, caption="Downsampled 28x28 Input", width='stretch')
+                else:
+                    placeholder = Image.new("L", (28, 28), color=0)
+                    st.image(placeholder, caption="Draw a digit to preview", width='stretch')
+                st.markdown("</div>", unsafe_allow_html=True)
                 
         with tab_upload:
-            uploaded_file = st.file_uploader("Upload an image of a digit (PNG, JPG, JPEG)", type=["png", "jpg", "jpeg"])
-            if uploaded_file is not None:
-                uploaded_img = Image.open(uploaded_file)
+            upload_col, preview_col = st.columns([1.6, 1])
+            
+            with upload_col:
+                uploaded_file = st.file_uploader("Upload an image of a digit (PNG, JPG, JPEG)", type=["png", "jpg", "jpeg"])
                 
-                # Convert to grayscale numpy array
-                img_gray = uploaded_img.convert('L')
-                img_arr = np.array(img_gray)
-                
-                # Smart Color Inversion:
-                # MNIST is white digits on black background. If the uploaded image has a light background, invert it.
-                # We estimate background brightness from border pixels.
-                border_pixels = np.concatenate([
-                    img_arr[0, :], img_arr[-1, :], img_arr[:, 0], img_arr[:, -1]
-                ])
-                if np.mean(border_pixels) > 127:
-                    img_arr = 255 - img_arr
-                
-                # Preprocess digit using recentering & scaling
-                input_tensor, raw_img_for_view = preprocess_digit(img_arr)
-                
-                st.image(uploaded_img, caption="Original Uploaded Image", width=180)
-        
-    # Preprocessed preview
-    if raw_img_for_view is not None:
-        with st.container(border=True):
-            st.markdown("#### 🕵️ What the CNN sees")
-            # Show resized 28x28 image scaled back up for readability
-            st.image(raw_img_for_view, caption="Downsampled 28x28 Grayscale Input", width=120)
+                upload_tensor = None
+                upload_preview = None
+                uploaded_img = None
+                if uploaded_file is not None:
+                    uploaded_img = Image.open(uploaded_file)
+                    
+                    # Convert to grayscale numpy array
+                    img_gray = uploaded_img.convert('L')
+                    img_arr = np.array(img_gray)
+                    
+                    # Smart Color Inversion:
+                    # MNIST is white digits on black background. If the uploaded image has a light background, invert it.
+                    border_pixels = np.concatenate([
+                        img_arr[0, :], img_arr[-1, :], img_arr[:, 0], img_arr[:, -1]
+                    ])
+                    if np.mean(border_pixels) > 127:
+                        img_arr = 255 - img_arr
+                    
+                    # Preprocess digit using recentering & scaling
+                    upload_tensor, upload_preview = preprocess_digit(img_arr)
+                    input_tensor = upload_tensor
+                    raw_img_for_view = upload_preview
+                    
+            with preview_col:
+                st.markdown("<div style='text-align: center; display: flex; flex-direction: column; align-items: center;'>", unsafe_allow_html=True)
+                st.markdown("##### 🕵️ What the CNN sees")
+                if upload_preview is not None:
+                    st.image(upload_preview, caption="Downsampled 28x28 Input", width='stretch')
+                    if uploaded_img is not None:
+                        st.image(uploaded_img, caption="Original Image", width='stretch')
+                else:
+                    placeholder = Image.new("L", (28, 28), color=0)
+                    st.image(placeholder, caption="Upload an image to preview", width='stretch')
+                st.markdown("</div>", unsafe_allow_html=True)
 
 with col_results:
     with st.container(border=True):
@@ -272,43 +323,51 @@ with col_results:
                 predicted_digit = np.argmax(probs)
                 confidence = probs[predicted_digit] * 100
             
-            # Display Prediction Block
+            # Display Prediction Card
             st.markdown(f"""
-            <div class="prediction-box">
-                <div style="font-size: 16px; font-weight: 600; opacity: 0.8;">Predicted Classification</div>
-                <div class="prediction-digit">{predicted_digit}</div>
-                <div class="prediction-confidence">Confidence: {confidence:.2f}%</div>
+            <div class="prediction-card">
+                <div class="prediction-label">Predicted Classification</div>
+                <div class="prediction-digit-large">{predicted_digit}</div>
+                <div class="prediction-confidence-large">Confidence: <b>{confidence:.2f}%</b></div>
             </div>
-            <br>
             """, unsafe_allow_html=True)
             
             # Display Plotly Probabilities
-            st.markdown("<h4>Classification Probabilities</h4>", unsafe_allow_html=True)
+            st.markdown("<h5>Classification Probabilities</h5>", unsafe_allow_html=True)
+            
+            # Color palette matching the premium gradient theme
+            # Highlight the predicted digit with indigo/purple and make others light indigo
+            colors = ['rgba(79, 70, 229, 0.25)'] * 10
+            colors[predicted_digit] = 'rgba(147, 51, 234, 1.0)'
+            
             fig = go.Figure(go.Bar(
-                x=probs,
-                y=[str(i) for i in range(10)],
-                orientation='h',
+                x=[str(i) for i in range(10)],
+                y=probs,
                 marker=dict(
-                    color='#1f77b4', # Standard clean blue
-                    line=dict(width=1)
+                    color=colors,
+                    line=dict(color='rgba(0,0,0,0)', width=0)
                 ),
-                text=[f"{p*100:.1f}%" if p > 0.05 else "" for p in probs],
-                textposition='auto'
+                text=[f"{p*100:.0f}%" if p > 0.04 else "" for p in probs],
+                textposition='outside'
             ))
             
             fig.update_layout(
                 xaxis=dict(
-                    title='Probability', 
-                    range=[0, 1.1],
-                    zeroline=False
+                    title='Digit Class',
+                    showgrid=False,
+                    tickmode='linear'
                 ),
                 yaxis=dict(
-                    title='Digit Class', 
-                    categoryorder='category ascending',
+                    title='Probability',
+                    range=[0, 1.1],
+                    gridcolor='rgba(128, 128, 128, 0.1)',
+                    tickformat='.0%'
                 ),
-                margin=dict(l=10, r=10, t=10, b=10),
-                height=320,
-                showlegend=False
+                margin=dict(l=40, r=10, t=25, b=40),
+                height=240,
+                showlegend=False,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
             )
             st.plotly_chart(fig, width='stretch', theme="streamlit")
             
